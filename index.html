@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Question Tail</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="admin-banner">MODO: <span style="color:var(--color-accent)">ADMIN</span> // PANEL SEGURO</div>
+    <div id="app" class="container">
+        
+        <!-- PANTALLA INICIAL (Elegir Rol) -->
+        <section id="screen-inicio" class="screen active">
+            <h1 class="logo-title">Question Tail</h1>
+            <p class="subtitle">La Nueva Experiencia de Trivia</p>
+            <div class="card bg-transparent shadow-none" style="background:transparent; box-shadow:none; align-items:center;">
+                <button id="btn-entrar-admin" class="btn btn-primary mb-1 w-100">Entrar como Admin</button>
+                <div class="or-divider">O</div>
+                <button id="btn-entrar-jugador" class="btn btn-secondary w-100">Entrar como Jugador</button>
+            </div>
+            <button id="btn-limpiar-datos" class="btn btn-text mt-2">Limpiar Partida Actual</button>
+        </section>
+
+        <!-- PANTALLA REGISTRO (Ingresar Nombre - Solo Jugador) -->
+        <section id="screen-registro" class="screen hidden">
+            <h1 class="logo-title-small">Question Tail</h1>
+            <div class="card">
+                <h2>Identidad</h2>
+                <input type="text" id="input-nombre" placeholder="Introduce tu nombre..." autocomplete="off" maxlength="15" />
+                <button id="btn-confirmar-nombre" class="btn btn-primary">Confirmar Identidad</button>
+                <button class="btn btn-secondary mt-2 w-100 btn-volver-inicio" style="font-size: 0.9rem;">Volver al Menú</button>
+            </div>
+        </section>
+
+        <!-- PANTALLA SALA DE ESPERA -->
+        <section id="screen-sala" class="screen hidden">
+            <h2 id="sala-titulo" class="glow-text">SALA DE ESPERA</h2>
+
+            <div class="players-container">
+                <h3>Conexiones Activas: <span id="contador-jugadores" class="accent-text">0</span></h3>
+                <ul id="lista-jugadores" class="players-list">
+                    <!-- Jugadores añadidos dinámicamente -->
+                </ul>
+            </div>
+
+            <!-- Controles Host/Admin -->
+            <button id="btn-comenzar-juego" class="btn btn-primary hidden w-100 mb-1">Inciar Secuencia</button>
+
+            <!-- Controles Cliente/Jugador -->
+            <div id="texto-esperando-host" class="subtitle pulse-text hidden">Sincronizando con administrador...</div>
+        </section>
+
+        <!-- PANTALLA PREGUNTAS -->
+        <section id="screen-preguntas" class="screen hidden">
+            <div class="top-bar">
+                <span class="question-counter">PREGUNTA <span id="num-pregunta-actual">1</span> / <span id="total-preguntas">?</span></span>
+                <div class="timer">
+                    <span id="timer-text">10</span>
+                </div>
+            </div>
+            
+            <div class="question-container">
+                <h2 id="texto-pregunta">¿Pregunta?</h2>
+            </div>
+            
+            <p id="mensaje-respondido" class="subtitle hidden" style="font-size:1.5rem; color:var(--color-a);">DATOS ENVIADOS. ESPERANDO...</p>
+
+            <!-- Opciones -->
+            <div class="options-grid" id="contenedor-opciones">
+                <button class="option-btn opt-a" data-index="0"><span class="shape">A</span><span class="opt-text" id="opt-0">Opción 1</span></button>
+                <button class="option-btn opt-b" data-index="1"><span class="shape">B</span><span class="opt-text" id="opt-1">Opción 2</span></button>
+                <button class="option-btn opt-c" data-index="2"><span class="shape">C</span><span class="opt-text" id="opt-2">Opción 3</span></button>
+                <button class="option-btn opt-d" data-index="3"><span class="shape">D</span><span class="opt-text" id="opt-3">Opción 4</span></button>
+            </div>
+        </section>
+
+        <!-- PANTALLA RANKING -->
+        <section id="screen-ranking" class="screen hidden">
+            <h2 class="glow-text">CLASIFICACIÓN</h2>
+            <div class="ranking-container">
+                <ol id="lista-ranking" class="ranking-list">
+                    <!-- Ranking se agrega dinámicamente -->
+                </ol>
+            </div>
+            <button id="btn-siguiente-pregunta" class="btn btn-primary mt-2 hidden w-100">Siguiente Secuencia</button>
+            <p id="texto-esperando-ranking" class="subtitle mt-2 pulse-text hidden">Aguardando administrador...</p>
+        </section>
+
+        <!-- PANTALLA RESULTADOS -->
+        <section id="screen-resultados" class="screen hidden">
+            <h1 class="logo-title mb-1">COMPLETADO</h1>
+            <div class="podium-container">
+                <h2>GANADOR: <span id="texto-ganador" class="accent-text">Nadie</span></h2>
+                <h3 class="mb-2">PUNTUACIÓN: <span id="puntos-ganador">0</span></h3>
+            </div>
+            
+            <h3 style="color:var(--color-primary)">Mejores Puntuaciones:</h3>
+            <ol id="lista-ranking-final" class="ranking-list mb-2"></ol>
+
+            <button id="btn-reiniciar-host" class="btn btn-primary mt-2 hidden w-100 mb-1">Nueva Simulación</button>
+            <button id="btn-salir" class="btn btn-secondary w-100">Desconectar (Menú)</button>
+        </section>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <script src="js/preguntas.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
