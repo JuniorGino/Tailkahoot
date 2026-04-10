@@ -1,9 +1,9 @@
 const bancoPreguntas = [
     {
         pregunta: "¿Que es Tailwind CSS?",
-        opciones: ["Un Framework de CSS", "Un framework de JS", "Un tipo de ordenador", "Esta no es"],
+        opciones: ["Un Framework de CSS", "Un Framework de JS", "Un tipo de ordenador", "Esta no es"],
         correcta: 0 // Un Framework de CSS
-    },
+    },  
     {
         pregunta: "¿Como se llama el enfoque de Tailwind CSS?",
         opciones: ["Utility-Fart", "Component-First", "Design-First", "Utility-First"],
@@ -50,7 +50,7 @@ const bancoPreguntas = [
     },
     {
         pregunta: "Por si no os habeis enterado, ¿Que es Tailwind CSS?",
-        opciones: ["Un Framework de CSS", "Un framework de JS", "Un tipo de ordenador", "Esta no es"],
+        opciones: ["Un Framework de CSS", "Un Framework de JS", "Un tipo de ordenador", "Esta no es"],
         correcta: 0 // Un Framework de CSS
     }
 ];
