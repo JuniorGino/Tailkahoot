@@ -1,10 +1,33 @@
 const TIEMPO_PREGUNTA = 10;
 
+const firebaseConfig = {
+    apiKey: "AIzaSyAQnM5jLt_3KKd2cpVxhJwhuyKr8iL-7oQ",
+    authDomain: "gino-45cb1.firebaseapp.com",
+    databaseURL: "https://gino-45cb1-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "gino-45cb1",
+    storageBucket: "gino-45cb1.firebasestorage.app",
+    messagingSenderId: "725127268465",
+    appId: "1:725127268465:web:7134207d25be0cc2fdf3d0"
+};
+
+// Inicializar Firebase Solo si se ha cambiado la API Key por defecto
+let db = null;
+try {
+    if (firebaseConfig.apiKey !== "TU_API_KEY") {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.database();
+    } else {
+        console.warn("FALTA FIREBASE: Recuerda configurar tus claves en js/main.js");
+    }
+} catch (e) {
+    console.error("Error al iniciar Firebase", e);
+}
+
+
 // Variables Locales
 let miRol = null; // 'admin' o 'jugador'
 let miId = 'id_' + Math.random().toString(36).substr(2, 9);
 let miNombre = '';
-let syncInterval = null;
 let timerActivo = null;
 
 const screens = {
@@ -17,35 +40,68 @@ const screens = {
 };
 
 // ========================
-// COMUNICACIÓN (LocalStorage)
+// COMUNICACIÓN (FIREBASE REALTIME DATABASE)
 // ========================
 
+let estado_actual = null;
+
 function initEstadoGlobal() {
-    if (!localStorage.getItem('k_estado')) {
-        limpiarJuegoGlobal();
-    }
+    if(!db) return;
+    
+    db.ref('partida').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) {
+            // No existe la partida aún, esperamos a que inicie el Admin
+        } else {
+            estado_actual = data;
+            // Si el usuario ya entró a la sala o más adelante, renderizamos automáticamente
+            if (miRol !== null || data.estado === "inicio") {
+                renderizarUI(obtenerEstado());
+            }
+        }
+    });
 }
 
 function limpiarJuegoGlobal() {
-    localStorage.setItem('k_estado', 'inicio'); // inicio, sala, preguntas, ranking, resultados
-    localStorage.setItem('k_jugadores', JSON.stringify([]));
-    localStorage.setItem('k_pregunta_idx', '0');
-    localStorage.setItem('k_tiempo', TIEMPO_PREGUNTA.toString());
-    localStorage.setItem('k_mostrar_correcta', 'false');
+    if(!db) return;
+    db.ref('partida').set({
+        estado: 'inicio',
+        jugadores: {},
+        preguntaIdx: 0,
+        tiempo: TIEMPO_PREGUNTA,
+        mostrarCorrecta: false
+    });
 }
 
 function obtenerEstado() {
+    if (!estado_actual) {
+        return {
+            estado: 'inicio',
+            jugadores: [],
+            preguntaIdx: 0,
+            tiempo: TIEMPO_PREGUNTA,
+            mostrarCorrecta: false
+        };
+    }
+    
+    // De objeto de Firebase a Array
+    const j_obj = estado_actual.jugadores || {};
+    const j_arr = Object.values(j_obj);
+
     return {
-        estado: localStorage.getItem('k_estado') || 'inicio',
-        jugadores: JSON.parse(localStorage.getItem('k_jugadores') || '[]'),
-        preguntaIdx: parseInt(localStorage.getItem('k_pregunta_idx') || '0'),
-        tiempo: parseInt(localStorage.getItem('k_tiempo') || TIEMPO_PREGUNTA.toString()),
-        mostrarCorrecta: localStorage.getItem('k_mostrar_correcta') === 'true'
+        estado: estado_actual.estado || 'inicio',
+        jugadores: j_arr,
+        preguntaIdx: estado_actual.preguntaIdx || 0,
+        tiempo: estado_actual.tiempo || TIEMPO_PREGUNTA,
+        mostrarCorrecta: !!estado_actual.mostrarCorrecta
     };
 }
 
-function actualizarJugadores(nuevosJugadores) {
-    localStorage.setItem('k_jugadores', JSON.stringify(nuevosJugadores));
+function actualizarJugadores(nuevosJugadoresArr) {
+    if(!db) return;
+    let obj = {};
+    nuevosJugadoresArr.forEach(j => { obj[j.id] = j; });
+    db.ref('partida/jugadores').set(obj);
 }
 
 // ========================
@@ -66,21 +122,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Limpiar toda la partida para empezar de 0
     document.getElementById('btn-limpiar-datos').addEventListener('click', () => {
+        if(!db) { alert("Falta configurar Firebase"); return;}
         limpiarJuegoGlobal();
-        alert('Partida de prueba limpiada en este navegador. Abre en otra pestaña para simular jugadores.');
+        alert('Partida limpiada.');
     });
 
     // Admin
     document.getElementById('btn-entrar-admin').addEventListener('click', () => {
+        if(!db) { alert("Falta configurar Firebase"); return;}
         miRol = 'admin';
         miNombre = 'ADMIN';
         document.body.classList.add('modo-admin');
-        localStorage.setItem('k_estado', 'sala'); // Fuerza estado sala
-        iniciarSync();
+        
+        db.ref('partida').once('value').then(snap => {
+            if(!snap.exists() || snap.val().estado === 'inicio') {
+                limpiarJuegoGlobal();
+            }
+            db.ref('partida/estado').set('sala');
+            iniciarSync();
+        });
     });
 
     // Jugador
     document.getElementById('btn-entrar-jugador').addEventListener('click', () => {
+        if(!db) { alert("Falta configurar Firebase"); return;}
         miRol = 'jugador';
         cambiarPantalla('registro');
     });
@@ -97,15 +162,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const nombreVal = document.getElementById('input-nombre').value.trim();
         if (nombreVal) {
             miNombre = nombreVal;
-            const st = obtenerEstado();
-            st.jugadores.push({
+            
+            db.ref('partida/jugadores/' + miId).set({
                 id: miId,
                 nombre: miNombre,
                 puntos: 0,
                 respuesta_actual: null,
                 tiempo_respuesta: 0
             });
-            actualizarJugadores(st.jugadores);
+
             iniciarSync();
         } else {
             alert('Ingresa tu Identidad.');
@@ -115,8 +180,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Acciones exclusivas del Admin
     document.getElementById('btn-comenzar-juego').addEventListener('click', () => {
         if(miRol === 'admin') {
-            localStorage.setItem('k_pregunta_idx', '0');
-            iniciarCicloPreguntaAdmin();
+            db.ref('partida/preguntaIdx').set(0).then(() => {
+                iniciarCicloPreguntaAdmin();
+            });
         }
     });
 
@@ -124,10 +190,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if(miRol === 'admin') {
             let st = obtenerEstado();
             if(st.preguntaIdx + 1 < bancoPreguntas.length) {
-                localStorage.setItem('k_pregunta_idx', (st.preguntaIdx + 1).toString());
-                iniciarCicloPreguntaAdmin();
+                db.ref('partida/preguntaIdx').set(st.preguntaIdx + 1).then(() => {
+                    iniciarCicloPreguntaAdmin();
+                });
             } else {
-                localStorage.setItem('k_estado', 'resultados');
+                db.ref('partida/estado').set('resultados');
             }
         }
     });
@@ -135,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-reiniciar-host').addEventListener('click', () => {
         if(miRol === 'admin') {
             limpiarJuegoGlobal();
-            localStorage.setItem('k_estado', 'sala'); 
+            db.ref('partida/estado').set('sala');
         }
     });
 
@@ -179,13 +246,6 @@ function iniciarSync() {
         document.body.classList.remove('modo-admin');
     }
 
-    if (syncInterval) clearInterval(syncInterval);
-    
-    syncInterval = setInterval(() => {
-        const state = obtenerEstado();
-        renderizarUI(state);
-    }, 500); 
-    
     renderizarUI(obtenerEstado());
 }
 
@@ -227,7 +287,10 @@ function renderizarUI(state) {
         case 'preguntas': actualizarPreguntasUI(state); break;
         case 'ranking': actualizarRankingUI(state); break;
         case 'resultados': actualizarResultadosUI(state); break;
-        case 'inicio': window.location.reload(); break;
+        case 'inicio': 
+            // Si estábamos en partida y de repente volvió a inicio, recargamos
+            if (miRol) window.location.reload(); 
+            break;
     }
 }
 
@@ -237,16 +300,15 @@ function renderizarUI(state) {
 
 function actualizarSalaUI(state) {
     const lista = document.getElementById('lista-jugadores');
-    if (lista.children.length !== state.jugadores.length) {
-        lista.innerHTML = '';
-        state.jugadores.forEach(j => {
-            const li = document.createElement('li');
-            li.textContent = j.nombre;
-            if(j.id === miId) li.classList.add('me');
-            lista.appendChild(li);
-        });
-        document.getElementById('contador-jugadores').textContent = state.jugadores.length;
-    }
+    // Para simplificar renderizado en Firebase, reconstruimos la lista
+    lista.innerHTML = '';
+    state.jugadores.forEach(j => {
+        const li = document.createElement('li');
+        li.textContent = j.nombre;
+        if(j.id === miId) li.classList.add('me');
+        lista.appendChild(li);
+    });
+    document.getElementById('contador-jugadores').textContent = state.jugadores.length;
 }
 
 function actualizarPreguntasUI(state) {
@@ -324,23 +386,23 @@ function actualizarResultadosUI(state) {
 // HOST / ADMIN CONTROL
 // ========================
 function iniciarCicloPreguntaAdmin() {
-    localStorage.setItem('k_estado', 'preguntas');
-    localStorage.setItem('k_tiempo', TIEMPO_PREGUNTA.toString());
-    localStorage.setItem('k_mostrar_correcta', 'false');
+    db.ref('partida/estado').set('preguntas');
+    db.ref('partida/tiempo').set(TIEMPO_PREGUNTA);
+    db.ref('partida/mostrarCorrecta').set(false);
 
-    let js =JSON.parse(localStorage.getItem('k_jugadores') || '[]');
-    js.forEach(j => {
+    let jArr = obtenerEstado().jugadores;
+    jArr.forEach(j => {
         j.respuesta_actual = null;
         j.tiempo_respuesta = 0;
     });
-    actualizarJugadores(js);
+    actualizarJugadores(jArr);
 
     if(timerActivo) clearInterval(timerActivo);
     
+    let t = TIEMPO_PREGUNTA;
     timerActivo = setInterval(() => {
-        let t = parseInt(localStorage.getItem('k_tiempo'));
         t--;
-        localStorage.setItem('k_tiempo', t.toString());
+        db.ref('partida/tiempo').set(t);
 
         if (t <= 0) {
             clearInterval(timerActivo);
@@ -350,23 +412,30 @@ function iniciarCicloPreguntaAdmin() {
 }
 
 function finalizarPreguntaAdmin() {
-    localStorage.setItem('k_mostrar_correcta', 'true');
-    const idx = parseInt(localStorage.getItem('k_pregunta_idx'));
-    const correcta = bancoPreguntas[idx].correcta;
+    db.ref('partida/mostrarCorrecta').set(true);
     
-    let js =JSON.parse(localStorage.getItem('k_jugadores') || '[]');
-    js.forEach(j => {
-        if (j.respuesta_actual === correcta) {
-            const max = 1000;
-            const puntosBase = max / 2;
-            const extraTiempo = j.tiempo_respuesta / TIEMPO_PREGUNTA * (max / 2);
-            j.puntos += Math.round(puntosBase + extraTiempo);
-        }
+    // Obtenemos el estado actual directamente
+    db.ref('partida').once('value').then(snap => {
+        let actual = snap.val();
+        let idx = actual.preguntaIdx;
+        let correcta = bancoPreguntas[idx].correcta;
+        
+        let jObj = actual.jugadores || {};
+        
+        Object.values(jObj).forEach(j => {
+            if (j.respuesta_actual === correcta) {
+                const max = 1000;
+                const puntosBase = max / 2;
+                const extraTiempo = j.tiempo_respuesta / TIEMPO_PREGUNTA * (max / 2);
+                j.puntos += Math.round(puntosBase + extraTiempo);
+            }
+        });
+        
+        db.ref('partida/jugadores').set(jObj);
     });
-    actualizarJugadores(js);
 
     setTimeout(() => {
-        localStorage.setItem('k_estado', 'ranking');
+        db.ref('partida/estado').set('ranking');
     }, 4000);
 }
 
@@ -374,20 +443,8 @@ function enviarRespuestaJugador(idx_opcion) {
     const st = obtenerEstado();
     if (st.estado !== 'preguntas' || st.mostrarCorrecta) return;
 
-    let encontrado = false;
-    for (let i = 0; i < st.jugadores.length; i++) {
-        if (st.jugadores[i].id === miId) {
-            if (st.jugadores[i].respuesta_actual === null) {
-                st.jugadores[i].respuesta_actual = idx_opcion;
-                st.jugadores[i].tiempo_respuesta = st.tiempo;
-                encontrado = true;
-            }
-            break;
-        }
-    }
-    
-    if(encontrado) {
-        document.querySelectorAll('.option-btn').forEach(b => b.style.opacity = '0.5');
-        actualizarJugadores(st.jugadores);
-    }
+    db.ref('partida/jugadores/' + miId + '/respuesta_actual').set(idx_opcion);
+    db.ref('partida/jugadores/' + miId + '/tiempo_respuesta').set(st.tiempo);
+
+    document.querySelectorAll('.option-btn').forEach(b => b.style.opacity = '0.5');
 }
