@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 id: miId,
                 nombre: miNombre,
                 puntos: 0,
-                respuesta_actual: null,
+                respuesta_actual: -1,
                 tiempo_respuesta: 0
             });
 
@@ -350,7 +350,7 @@ function actualizarPreguntasUI(state) {
 
     if (miRol === 'jugador') {
         const miJugador = state.jugadores.find(j => j.id === miId);
-        if (miJugador && miJugador.respuesta_actual !== null && !state.mostrarCorrecta) {
+        if (miJugador && miJugador.respuesta_actual !== undefined && miJugador.respuesta_actual !== -1 && !state.mostrarCorrecta) {
             botones.forEach(b => {
                 b.disabled = true;
                 b.style.opacity = '0.5';
@@ -409,7 +409,7 @@ function iniciarCicloPreguntaAdmin() {
 
     let jArr = obtenerEstado().jugadores;
     jArr.forEach(j => {
-        j.respuesta_actual = null;
+        j.respuesta_actual = -1;
         j.tiempo_respuesta = 0;
     });
     actualizarJugadores(jArr);
