@@ -1,7 +1,7 @@
 const TIEMPO_PREGUNTA = 10;
 
 const firebaseConfig = {
-    apiKey: "AIzaSyAQnM5jLt_3KKd2cpVxhJwhuyKr8iL-7oQ",
+    apiKey: "[GCP_API_KEY]",
     authDomain: "gino-45cb1.firebaseapp.com",
     databaseURL: "https://gino-45cb1-default-rtdb.europe-west1.firebasedatabase.app",
     projectId: "gino-45cb1",
@@ -331,6 +331,13 @@ function actualizarPreguntasUI(state) {
     botones.forEach((btn, idx) => {
         btn.querySelector('.opt-text').textContent = preg.opciones[idx];
         
+        // Limpiamos los botones en cada tick por seguridad
+        btn.classList.remove('correct', 'wrong');
+        btn.disabled = false;
+        btn.style.opacity = '1';
+
+        if (miRol === 'admin') btn.disabled = true;
+
         if (state.mostrarCorrecta) {
             btn.disabled = true;
             if (idx === preg.correcta) {
@@ -344,8 +351,15 @@ function actualizarPreguntasUI(state) {
     if (miRol === 'jugador') {
         const miJugador = state.jugadores.find(j => j.id === miId);
         if (miJugador && miJugador.respuesta_actual !== null && !state.mostrarCorrecta) {
-            botones.forEach(b => b.disabled = true);
+            botones.forEach(b => {
+                b.disabled = true;
+                b.style.opacity = '0.5';
+            });
             document.getElementById('mensaje-respondido').classList.remove('hidden');
+        } else {
+            if (!state.mostrarCorrecta) {
+                document.getElementById('mensaje-respondido').classList.add('hidden');
+            }
         }
     }
 }
@@ -386,9 +400,12 @@ function actualizarResultadosUI(state) {
 // HOST / ADMIN CONTROL
 // ========================
 function iniciarCicloPreguntaAdmin() {
-    db.ref('partida/estado').set('preguntas');
-    db.ref('partida/tiempo').set(TIEMPO_PREGUNTA);
-    db.ref('partida/mostrarCorrecta').set(false);
+    // Usamos update para que los jugadores reciban todos los datos al mismo tiempo (atómico)
+    db.ref('partida').update({
+        estado: 'preguntas',
+        tiempo: TIEMPO_PREGUNTA,
+        mostrarCorrecta: false
+    });
 
     let jArr = obtenerEstado().jugadores;
     jArr.forEach(j => {
