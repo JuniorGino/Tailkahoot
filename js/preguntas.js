@@ -50,7 +50,7 @@ const bancoPreguntas = [
     },
     {
         pregunta: "Por si no os habeis enterado, ¿Que es Tailwind CSS?",
-        opciones: ["Un Framework de CSS", "Un Framework de JS", "Un tipo de ordenador", "Esta no es"],
-        correcta: 0 // Un Framework de CSS
+        opciones: ["Un Freinwork de CSS", "Un Framework de JS", "Un Framework de CSS", "Esta no es"],
+        correcta: 2 // Un Framework de CSS
     }
 ];
