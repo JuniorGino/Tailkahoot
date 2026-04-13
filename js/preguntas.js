@@ -18,14 +18,14 @@ const bancoPreguntas = [
         pregunta: "¿Quien creo Tailwind CSS?",
         opciones: ["Adam Sandler , Jonathan Reinink , David Harbour , Steve Carell",
             "Iron man , Linterna verde , Spiderman , Batman",
-            "Adam Wathan , Jonathan Reinink , David Hemphill , Steve Schoger",
-            "Adam Reinink, Jonathan Hemphill, David Schoger, Steve Wathan",
+            "David Hemphill , Jonathan Reinink , Adam Wathan , Steve Schoger",
+             "Adam Wathan , Jonathan Reinink , David Hemphill , Steven Spielberg",
          ],
         correcta: 2 //"Adam Wathan , Jonathan Reinink , David Hemphill , Steve Schoger",
     },
     {
         pregunta: "¿Que año se creo Tailwind CSS?",
-        opciones: ["1015a.c", "2016", "2017", "Ayer"],
+        opciones: ["1015a.c", "2019", "2017", "Ayer"],
         correcta: 2 //"2017"
     },
     {
@@ -44,8 +44,8 @@ const bancoPreguntas = [
         correcta: 3 //"El de la derecha de Kevin"
     },
     {
-        pregunta: "¿Que  necesitamos para usar Tailwind Cli ?",
-        opciones: ["Windows X", "HTML", "Un Framework", "Node.js"],
+        pregunta: "¿Que  necesitamos para usar Tailwind CSS?",
+        opciones: ["Windows X", "JavaScript", "Un Framework", "Node.js"],
         correcta: 3 // Node.js
     },
     {
